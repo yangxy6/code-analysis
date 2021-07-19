@@ -194,7 +194,7 @@ let currentHookNameInDev: ?HookType = null;
 // In DEV, this list ensures that hooks are called in the same order between renders.
 // The list stores the order of hooks used during the initial render (mount).
 // Subsequent renders (updates) reference this list.
-let hookTypesDev: Array<HookType> | null = null;
+let hookTypesDev: Array<HookType> | null = null; // 保证多个useState调用是按照顺序的
 let hookTypesUpdateIndexDev: number = -1;
 
 // In DEV, this tracks whether currently rendering component needs to ignore
@@ -356,8 +356,8 @@ export function renderWithHooks<Props, SecondArg>(
   secondArg: SecondArg,
   nextRenderLanes: Lanes,
 ): any {
-  renderLanes = nextRenderLanes;
-  currentlyRenderingFiber = workInProgress;
+  renderLanes = nextRenderLanes; // 获取下次render优先级
+  currentlyRenderingFiber = workInProgress; //workInProgress赋值最近Fiber对象
 
   if (__DEV__) {
     hookTypesDev =
@@ -369,7 +369,7 @@ export function renderWithHooks<Props, SecondArg>(
     ignorePreviousDependencies =
       current !== null && current.type !== workInProgress.type;
   }
-
+  // 清空workInProgress
   workInProgress.memoizedState = null;
   workInProgress.updateQueue = null;
   workInProgress.lanes = NoLanes;
@@ -404,7 +404,7 @@ export function renderWithHooks<Props, SecondArg>(
     ReactCurrentDispatcher.current =
       current === null || current.memoizedState === null
         ? HooksDispatcherOnMount
-        : HooksDispatcherOnUpdate;
+        : HooksDispatcherOnUpdate; // 确定是调用mount阶段hook还是update阶段hook
   }
 
   let children = Component(props, secondArg);
@@ -595,21 +595,20 @@ export function resetHooksAfterThrow(): void {
 }
 
 function mountWorkInProgressHook(): Hook {
-  const hook: Hook = {
+  const hook: Hook = {// Hook 定义
     memoizedState: null,
 
     baseState: null,
     baseQueue: null,
     queue: null,
 
-    next: null,
+    next: null,// 链表操作，指向下一个hook
   };
-
   if (workInProgressHook === null) {
-    // This is the first hook in the list
+    // This is the first hook in the list  当前hook是第一个hook
     currentlyRenderingFiber.memoizedState = workInProgressHook = hook;
   } else {
-    // Append to the end of the list
+    // Append to the end of the list 若不是第一个则插入workInProgressHook链表末尾
     workInProgressHook = workInProgressHook.next = hook;
   }
   return workInProgressHook;
@@ -1240,17 +1239,17 @@ function updateMutableSource<Source, Snapshot>(
   const hook = updateWorkInProgressHook();
   return useMutableSource(hook, source, getSnapshot, subscribe);
 }
-
+// mount阶段useState 具体实现
 function mountState<S>(
   initialState: (() => S) | S,
 ): [S, Dispatch<BasicStateAction<S>>] {
   const hook = mountWorkInProgressHook();
-  if (typeof initialState === 'function') {
+  if (typeof initialState === 'function') { //惰性state初始化
     // $FlowFixMe: Flow doesn't like mixed types
     initialState = initialState();
   }
   hook.memoizedState = hook.baseState = initialState;
-  const queue = (hook.queue = {
+  const queue = (hook.queue = {// 用于更新链表
     pending: null,
     interleaved: null,
     lanes: NoLanes,
@@ -1260,7 +1259,7 @@ function mountState<S>(
   });
   const dispatch: Dispatch<
     BasicStateAction<S>,
-  > = (queue.dispatch = (dispatchAction.bind(
+    > = (queue.dispatch = (dispatchAction.bind(// 定义更新state的dispatch方法，环状更新
     null,
     currentlyRenderingFiber,
     queue,
@@ -1915,14 +1914,16 @@ function dispatchAction<S, A>(
 
   const eventTime = requestEventTime();
   const lane = requestUpdateLane(fiber);
+  debugger
 
-  const update: Update<S, A> = {
+  const update: Update<S, A> = { //创建update数据
     lane,
     action,
     eagerReducer: null,
     eagerState: null,
     next: (null: any),
   };
+  debugger
 
   const alternate = fiber.alternate;
   if (
@@ -1934,8 +1935,9 @@ function dispatchAction<S, A>(
     // and apply the stashed updates on top of the work-in-progress hook.
     didScheduleRenderPhaseUpdateDuringThisPass = didScheduleRenderPhaseUpdate = true;
     const pending = queue.pending;
+    debugger
     if (pending === null) {
-      // This is the first update. Create a circular list.
+      // This is the first update. Create a circular list. 第一次更新，创建环状list
       update.next = update;
     } else {
       update.next = pending.next;
@@ -1943,6 +1945,7 @@ function dispatchAction<S, A>(
     }
     queue.pending = update;
   } else {
+    debugger
     if (isInterleavedUpdate(fiber, lane)) {
       const interleaved = queue.interleaved;
       if (interleaved === null) {
@@ -2013,7 +2016,7 @@ function dispatchAction<S, A>(
         warnIfNotCurrentlyActingUpdatesInDev(fiber);
       }
     }
-    const root = scheduleUpdateOnFiber(fiber, lane, eventTime);
+    const root = scheduleUpdateOnFiber(fiber, lane, eventTime);// 调度更新
 
     if (isTransitionLane(lane) && root !== null) {
       let queueLanes = queue.lanes;
@@ -2086,7 +2089,7 @@ if (enableCache) {
   (ContextOnlyDispatcher: Dispatcher).getCacheForType = getCacheForType;
   (ContextOnlyDispatcher: Dispatcher).useCacheRefresh = throwInvalidHookError;
 }
-
+// mount阶段hook
 const HooksDispatcherOnMount: Dispatcher = {
   readContext,
 
@@ -2111,7 +2114,7 @@ if (enableCache) {
   (HooksDispatcherOnMount: Dispatcher).getCacheForType = getCacheForType;
   (HooksDispatcherOnMount: Dispatcher).useCacheRefresh = mountRefresh;
 }
-
+// update阶段hook
 const HooksDispatcherOnUpdate: Dispatcher = {
   readContext,
 
@@ -2270,11 +2273,11 @@ if (__DEV__) {
       currentHookNameInDev = 'useState';
       mountHookTypesDev();
       const prevDispatcher = ReactCurrentDispatcher.current;
-      ReactCurrentDispatcher.current = InvalidNestedHooksDispatcherOnMountInDEV;
+    ReactCurrentDispatcher.current = InvalidNestedHooksDispatcherOnMountInDEV; //套娃了
       try {
         return mountState(initialState);
       } finally {
-        ReactCurrentDispatcher.current = prevDispatcher;
+        ReactCurrentDispatcher.current = prevDispatcher;// ReactCurrentDispatcher.current 这个最终还是保存为 他自己？
       }
     },
     useDebugValue<T>(value: T, formatterFn: ?(value: T) => mixed): void {

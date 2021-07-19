@@ -1527,7 +1527,7 @@ function mountIndeterminateComponent(
 
     setIsRendering(true);
     ReactCurrentOwner.current = workInProgress;
-    value = renderWithHooks(
+    value = renderWithHooks( //  render Hook 入口
       null,
       workInProgress,
       Component,

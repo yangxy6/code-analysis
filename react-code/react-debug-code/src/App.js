@@ -1,12 +1,13 @@
 import * as React from 'react'
+const { useState } = React
 
 function App() {
-  // const [count, setCount] = React.useState(0)
+  const [count, setCount] = useState(8)
   return (
     <div className="App">
       Hello React
-      {/* <p>显示count:{count}</p> */}
-      {/* <button onClick={setCount(count + 1)}></button> */}
+      <p>显示count:{count}</p>
+      <button onClick={() => setCount(count + 1)}>+1</button>
     </div>
   );
 }

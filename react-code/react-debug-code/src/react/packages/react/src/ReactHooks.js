@@ -70,7 +70,7 @@ export function useContext<T>(Context: ReactContext<T>): T {
   }
   return dispatcher.useContext(Context);
 }
-
+// useState 中initalState类型为 function | S
 export function useState<S>(
   initialState: (() => S) | S,
 ): [S, Dispatch<BasicStateAction<S>>] {

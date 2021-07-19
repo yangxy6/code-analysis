@@ -27,22 +27,22 @@ import {ConcurrentUpdatesByDefaultMode, NoMode} from './ReactTypeOfMode';
 
 // Lane values below should be kept in sync with getLabelsForLanes(), used by react-devtools-scheduling-profiler.
 // If those values are changed that package should be rebuilt and redeployed.
-
+// lane为优先级，lane值越小，优先级越高，lane为二进制，一共31位，每位是一个车道。（同赛车🏎️，车道越靠近里面优势越大）
 export const TotalLanes = 31;
 
 export const NoLanes: Lanes = /*                        */ 0b0000000000000000000000000000000;
 export const NoLane: Lane = /*                          */ 0b0000000000000000000000000000000;
 
-export const SyncLane: Lane = /*                        */ 0b0000000000000000000000000000001;
+export const SyncLane: Lane = /*     同步车道：1          */ 0b0000000000000000000000000000001;
 
 export const InputContinuousHydrationLane: Lane = /*    */ 0b0000000000000000000000000000010;
 export const InputContinuousLane: Lanes = /*            */ 0b0000000000000000000000000000100;
 
 export const DefaultHydrationLane: Lane = /*            */ 0b0000000000000000000000000001000;
-export const DefaultLane: Lanes = /*                    */ 0b0000000000000000000000000010000;
+export const DefaultLane: Lanes = /*   默认触发更新车道    */ 0b0000000000000000000000000010000;
 
 const TransitionHydrationLane: Lane = /*                */ 0b0000000000000000000000000100000;
-const TransitionLanes: Lanes = /*                       */ 0b0000000001111111111111111000000;
+const TransitionLanes: Lanes = /*   批车道               */ 0b0000000001111111111111111000000;
 const TransitionLane1: Lane = /*                        */ 0b0000000000000000000000001000000;
 const TransitionLane2: Lane = /*                        */ 0b0000000000000000000000010000000;
 const TransitionLane3: Lane = /*                        */ 0b0000000000000000000000100000000;
@@ -60,7 +60,7 @@ const TransitionLane14: Lane = /*                       */ 0b0000000000010000000
 const TransitionLane15: Lane = /*                       */ 0b0000000000100000000000000000000;
 const TransitionLane16: Lane = /*                       */ 0b0000000001000000000000000000000;
 
-const RetryLanes: Lanes = /*                            */ 0b0000111110000000000000000000000;
+const RetryLanes: Lanes = /*            批车道           */ 0b0000111110000000000000000000000;
 const RetryLane1: Lane = /*                             */ 0b0000000010000000000000000000000;
 const RetryLane2: Lane = /*                             */ 0b0000000100000000000000000000000;
 const RetryLane3: Lane = /*                             */ 0b0000001000000000000000000000000;
@@ -127,7 +127,7 @@ export const NoTimestamp = -1;
 
 let nextTransitionLane: Lane = TransitionLane1;
 let nextRetryLane: Lane = RetryLane1;
-
+// 获得高级别优先级车道
 function getHighestPriorityLanes(lanes: Lanes | Lane): Lanes {
   switch (getHighestPriorityLane(lanes)) {
     case SyncLane:
@@ -522,23 +522,23 @@ function pickArbitraryLaneIndex(lanes: Lanes) {
 function laneToIndex(lane: Lane) {
   return pickArbitraryLaneIndex(lane);
 }
-
+// 是否存在交集 车道和批车道
 export function includesSomeLane(a: Lanes | Lane, b: Lanes | Lane) {
   return (a & b) !== NoLanes;
 }
-
+// subset是否是set子集 车道和批车道
 export function isSubsetOfLanes(set: Lanes, subset: Lanes | Lane) {
   return (set & subset) === subset;
 }
-
+// 合并车道
 export function mergeLanes(a: Lanes | Lane, b: Lanes | Lane): Lanes {
   return a | b;
 }
-
+// 移除车道 从set的lanes中移除 lane
 export function removeLanes(set: Lanes, subset: Lanes | Lane): Lanes {
   return set & ~subset;
 }
-
+// 新增车道 
 export function intersectLanes(a: Lanes | Lane, b: Lanes | Lane): Lanes {
   return a & b;
 }
