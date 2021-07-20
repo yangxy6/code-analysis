@@ -201,7 +201,7 @@ let hookTypesUpdateIndexDev: number = -1;
 // the dependencies for Hooks that need them (e.g. useEffect or useMemo).
 // When true, such Hooks will always be "remounted". Only used during hot reload.
 let ignorePreviousDependencies: boolean = false;
-
+// 按照执行顺序调用hook
 function mountHookTypesDev() {
   if (__DEV__) {
     const hookName = ((currentHookNameInDev: any): HookType);
@@ -213,7 +213,7 @@ function mountHookTypesDev() {
     }
   }
 }
-
+// update阶段
 function updateHookTypesDev() {
   if (__DEV__) {
     const hookName = ((currentHookNameInDev: any): HookType);
@@ -389,7 +389,7 @@ export function renderWithHooks<Props, SecondArg>(
   // so memoizedState would be null during updates and mounts.
   if (__DEV__) {
     if (current !== null && current.memoizedState !== null) {
-      ReactCurrentDispatcher.current = HooksDispatcherOnUpdateInDEV;
+      ReactCurrentDispatcher.current = HooksDispatcherOnUpdateInDEV;//update
     } else if (hookTypesDev !== null) {
       // This dispatcher handles an edge case where a component is updating,
       // but no stateful hooks have been used.
@@ -398,7 +398,7 @@ export function renderWithHooks<Props, SecondArg>(
       // This dispatcher does that.
       ReactCurrentDispatcher.current = HooksDispatcherOnMountWithHookTypesInDEV;
     } else {
-      ReactCurrentDispatcher.current = HooksDispatcherOnMountInDEV;
+      ReactCurrentDispatcher.current = HooksDispatcherOnMountInDEV;//mount
     }
   } else {
     ReactCurrentDispatcher.current =
@@ -606,6 +606,7 @@ function mountWorkInProgressHook(): Hook {
   };
   if (workInProgressHook === null) {
     // This is the first hook in the list  当前hook是第一个hook
+    console.log('mountWorkInProgressHook')
     currentlyRenderingFiber.memoizedState = workInProgressHook = hook;
   } else {
     // Append to the end of the list 若不是第一个则插入workInProgressHook链表末尾
@@ -620,6 +621,7 @@ function updateWorkInProgressHook(): Hook {
   // clone, or a work-in-progress hook from a previous render pass that we can
   // use as a base. When we reach the end of the base list, we must switch to
   // the dispatcher used for mounts.
+  console.log('updateWorkInProgressHook')
   let nextCurrentHook: null | Hook;
   if (currentHook === null) {
     const current = currentlyRenderingFiber.alternate;
@@ -680,7 +682,7 @@ function createFunctionComponentUpdateQueue(): FunctionComponentUpdateQueue {
     lastEffect: null,
   };
 }
-
+// update 时传入固定reducer
 function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
   // $FlowFixMe: Flow doesn't like mixed types
   return typeof action === 'function' ? action(state) : action;
@@ -714,19 +716,20 @@ function mountReducer<S, I, A>(
   ): any));
   return [hook.memoizedState, dispatch];
 }
-
+// update更新时reducer
 function updateReducer<S, I, A>(
   reducer: (S, A) => S,
   initialArg: I,
   init?: I => S,
 ): [S, Dispatch<A>] {
+  console.log('updateReducer')
   const hook = updateWorkInProgressHook();
   const queue = hook.queue;
   invariant(
     queue !== null,
     'Should have a queue. This is likely a bug in React. Please file an issue.',
   );
-
+ // 
   queue.lastRenderedReducer = reducer;
 
   const current: Hook = (currentHook: any);
@@ -736,11 +739,11 @@ function updateReducer<S, I, A>(
 
   // The last pending update that hasn't been processed yet.
   const pendingQueue = queue.pending;
-  if (pendingQueue !== null) {
+  if (pendingQueue !== null) {//处理更新,pending->base
     // We have new updates that haven't been processed yet.
     // We'll add them to the base queue.
     if (baseQueue !== null) {
-      // Merge the pending queue and the base queue.
+      // Merge the pending queue and the base queue. 交叉合并queue
       const baseFirst = baseQueue.next;
       const pendingFirst = pendingQueue.next;
       baseQueue.next = pendingFirst;
@@ -756,7 +759,7 @@ function updateReducer<S, I, A>(
         );
       }
     }
-    current.baseQueue = baseQueue = pendingQueue;
+    current.baseQueue = baseQueue = pendingQueue; //将更新从pending放到basequeue
     queue.pending = null;
   }
 
@@ -769,9 +772,9 @@ function updateReducer<S, I, A>(
     let newBaseQueueFirst = null;
     let newBaseQueueLast = null;
     let update = first;
-    do {
+    do {//先执行一次更新
       const updateLane = update.lane;
-      if (!isSubsetOfLanes(renderLanes, updateLane)) {
+      if (!isSubsetOfLanes(renderLanes, updateLane)) {//优先级低，跳过更新
         // Priority is insufficient. Skip this update. If this is the first
         // skipped update, the previous update/state is the new base
         // update/state.
@@ -788,7 +791,7 @@ function updateReducer<S, I, A>(
         } else {
           newBaseQueueLast = newBaseQueueLast.next = clone;
         }
-        // Update the remaining priority in the queue.
+        // Update the remaining priority in the queue. 更新剩余优先级，因为跳过一次了
         // TODO: Don't need to accumulate this. Instead, we can remove
         // renderLanes from the original lanes.
         currentlyRenderingFiber.lanes = mergeLanes(
@@ -797,7 +800,7 @@ function updateReducer<S, I, A>(
         );
         markSkippedUpdateLanes(updateLane);
       } else {
-        // This update does have sufficient priority.
+        // This update does have sufficient priority. 更新优先级高
 
         if (newBaseQueueLast !== null) {
           const clone: Update<S, A> = {
@@ -813,14 +816,14 @@ function updateReducer<S, I, A>(
           newBaseQueueLast = newBaseQueueLast.next = clone;
         }
 
-        // Process this update.
+        // Process this update. 这次更新会被处理
         if (update.eagerReducer === reducer) {
           // If this update was processed eagerly, and its reducer matches the
           // current reducer, we can use the eagerly computed state.
-          newState = ((update.eagerState: any): S);
+          newState = ((update.eagerState: any): S);//返回最新的state
         } else {
           const action = update.action;
-          newState = reducer(newState, action);
+          newState = reducer(newState, action); //reducer是basicStateReducer默认设置的
         }
       }
       update = update.next;
@@ -853,7 +856,7 @@ function updateReducer<S, I, A>(
     let interleaved = lastInterleaved;
     do {
       const interleavedLane = interleaved.lane;
-      currentlyRenderingFiber.lanes = mergeLanes(
+      currentlyRenderingFiber.lanes = mergeLanes( //获取剩余车道
         currentlyRenderingFiber.lanes,
         interleavedLane,
       );
@@ -1270,6 +1273,7 @@ function mountState<S>(
 function updateState<S>(
   initialState: (() => S) | S,
 ): [S, Dispatch<BasicStateAction<S>>] {
+  console.log('update 111')
   return updateReducer(basicStateReducer, (initialState: any));
 }
 
@@ -1896,7 +1900,7 @@ function refreshCache<T>(fiber: Fiber, seedKey: ?() => T, seedValue: T) {
   }
   // TODO: Warn if unmounted?
 }
-
+// 更新操作时 Action
 function dispatchAction<S, A>(
   fiber: Fiber,
   queue: UpdateQueue<S, A>,
@@ -1914,7 +1918,6 @@ function dispatchAction<S, A>(
 
   const eventTime = requestEventTime();
   const lane = requestUpdateLane(fiber);
-  debugger
 
   const update: Update<S, A> = { //创建update数据
     lane,
@@ -1923,7 +1926,6 @@ function dispatchAction<S, A>(
     eagerState: null,
     next: (null: any),
   };
-  debugger
 
   const alternate = fiber.alternate;
   if (
@@ -1935,7 +1937,6 @@ function dispatchAction<S, A>(
     // and apply the stashed updates on top of the work-in-progress hook.
     didScheduleRenderPhaseUpdateDuringThisPass = didScheduleRenderPhaseUpdate = true;
     const pending = queue.pending;
-    debugger
     if (pending === null) {
       // This is the first update. Create a circular list. 第一次更新，创建环状list
       update.next = update;
@@ -1945,7 +1946,6 @@ function dispatchAction<S, A>(
     }
     queue.pending = update;
   } else {
-    debugger
     if (isInterleavedUpdate(fiber, lane)) {
       const interleaved = queue.interleaved;
       if (interleaved === null) {
@@ -2191,7 +2191,7 @@ if (__DEV__) {
         'https://reactjs.org/link/rules-of-hooks',
     );
   };
-
+  // dev环境hooks mount
   HooksDispatcherOnMountInDEV = {
     readContext<T>(context: ReactContext<T>): T {
       return readContext(context);
@@ -2518,6 +2518,7 @@ if (__DEV__) {
     useState<S>(
       initialState: (() => S) | S,
     ): [S, Dispatch<BasicStateAction<S>>] {
+  console.log('update HooksDispatcherOnUpdateInDEV')
       currentHookNameInDev = 'useState';
       updateHookTypesDev();
       const prevDispatcher = ReactCurrentDispatcher.current;
