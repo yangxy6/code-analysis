@@ -1,8 +1,11 @@
 import * as React from 'react'
-const { useState } = React
+const { useState, useEffect } = React
 
 function App() {
   const [count, setCount] = useState(0)
+  useEffect(() => {
+    console.log(count)
+  }, [count])
   return (
     <div className="App">
       Hello React
