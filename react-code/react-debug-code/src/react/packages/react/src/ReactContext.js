@@ -10,11 +10,11 @@
 import {REACT_PROVIDER_TYPE, REACT_CONTEXT_TYPE} from 'shared/ReactSymbols';
 
 import type {ReactContext} from 'shared/ReactTypes';
-
+// 创建context
 export function createContext<T>(defaultValue: T): ReactContext<T> {
   // TODO: Second argument used to be an optional `calculateChangedBits`
   // function. Warn to reserve for future use?
-
+  // context对象
   const context: ReactContext<T> = {
     $$typeof: REACT_CONTEXT_TYPE,
     // As a workaround to support multiple concurrent renderers, we categorize

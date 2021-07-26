@@ -506,18 +506,18 @@ function commitHookEffectListUnmount(
     } while (effect !== firstEffect);
   }
 }
-
+// 执行useEffect 中create方法
 function commitHookEffectListMount(tag: number, finishedWork: Fiber) {
   const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
   const lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
   if (lastEffect !== null) {
     const firstEffect = lastEffect.next;
     let effect = firstEffect;
-    do {
+    do {// effect是环状链表
       if ((effect.tag & tag) === tag) {
         // Mount
         const create = effect.create;
-        effect.destroy = create();
+        effect.destroy = create();// 真正执行effet中create()
 
         if (__DEV__) {
           const destroy = effect.destroy;

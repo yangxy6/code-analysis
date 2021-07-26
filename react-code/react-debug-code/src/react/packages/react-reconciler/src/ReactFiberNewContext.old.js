@@ -602,7 +602,7 @@ export function prepareToReadContext(
     }
   }
 }
-
+// 读取context
 export function readContext<T>(context: ReactContext<T>): T {
   if (__DEV__) {
     // This warning would fire if you read context inside a Hook like useMemo.

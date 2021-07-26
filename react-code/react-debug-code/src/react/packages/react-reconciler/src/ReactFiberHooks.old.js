@@ -1286,19 +1286,19 @@ function pushEffect(tag, create, destroy, deps) {
     create,
     destroy,
     deps,
-    // Circular
+    // Circular 环状链表，作用：方便commit阶段可以根据tag跳过，环状链表方便循环遍历
     next: (null: any),
   };
   let componentUpdateQueue: null | FunctionComponentUpdateQueue = (currentlyRenderingFiber.updateQueue: any);
   if (componentUpdateQueue === null) {
-    componentUpdateQueue = createFunctionComponentUpdateQueue();
+    componentUpdateQueue = createFunctionComponentUpdateQueue(); // 初始值lastEffect
     currentlyRenderingFiber.updateQueue = (componentUpdateQueue: any);
     componentUpdateQueue.lastEffect = effect.next = effect;
   } else {
     const lastEffect = componentUpdateQueue.lastEffect;
     if (lastEffect === null) {
       componentUpdateQueue.lastEffect = effect.next = effect;
-    } else {
+    } else { //生成环状链表 同useState
       const firstEffect = lastEffect.next;
       lastEffect.next = effect;
       effect.next = firstEffect;
@@ -1323,7 +1323,7 @@ function getCallerStackFrame(): string {
     ? stackFrames.slice(3, 4).join('\n')
     : stackFrames.slice(2, 3).join('\n');
 }
-
+// useRef
 function mountRef<T>(initialValue: T): {|current: T|} {
   const hook = mountWorkInProgressHook();
   if (enableUseRefAccessWarning) {
@@ -1390,12 +1390,12 @@ function mountRef<T>(initialValue: T): {|current: T|} {
       return ref;
     }
   } else {
-    const ref = {current: initialValue};
+    const ref = { current: initialValue }; // ref中current保存value，没了
     hook.memoizedState = ref;
     return ref;
   }
 }
-
+// update
 function updateRef<T>(initialValue: T): {|current: T|} {
   const hook = updateWorkInProgressHook();
   return hook.memoizedState;
@@ -1421,7 +1421,7 @@ function updateEffectImpl(fiberFlags, hookFlags, create, deps): void {
   if (currentHook !== null) {
     const prevEffect = currentHook.memoizedState;
     destroy = prevEffect.destroy;
-    if (nextDeps !== null) {
+    if (nextDeps !== null) { //有依赖
       const prevDeps = prevEffect.deps;
       if (areHookInputsEqual(nextDeps, prevDeps)) {
         hook.memoizedState = pushEffect(hookFlags, create, destroy, nextDeps);
@@ -1622,7 +1622,7 @@ function mountCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
 function updateCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
   const hook = updateWorkInProgressHook();
   const nextDeps = deps === undefined ? null : deps;
-  const prevState = hook.memoizedState;
+  const prevState = hook.memoizedState; // 保存的[callback,deps]
   if (prevState !== null) {
     if (nextDeps !== null) {
       const prevDeps: Array<mixed> | null = prevState[1];
