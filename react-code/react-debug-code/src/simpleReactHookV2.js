@@ -1,21 +1,4 @@
-# 理念
-代数效应
 
-# 实现步骤
-
-1. 数据存储-两条链表
-    - 1. workInProgressHook 保存了当前组件所有hook，并用链表的形式保证按顺序调用
-    - 2. queue.pending //保存多个update，按照调用顺序执行，例如onclick中调用三次更新方法
-2. mount阶段和update阶段 分别调用不用useState
-3. queue.pending是环状单向链表，为啥环？因为优先级优化相关，方便跳过优先级低的update
-4. useState中 do while循环破开环状链表执行更新
-
-# 关注点
-1. useState和useReducer实现只有一点不一样，其他完全一样，区别在于是否传递reducer
-
-
-# 极简版本实现
-```js
 // 判断render是首次还是非首次触发
 let isMount = true
 // workInProgressHook 保存了当前组件所有hook，并用链表的形式保证按顺序调用
@@ -160,6 +143,9 @@ function dispatchAction(queue, action) {
     schedule()
 }
 
+
+
+
 // 实际调用组件
 function App() {
     const [num, updateNum] = useState(0)
@@ -205,6 +191,3 @@ function App() {
 }
 
 window.app = schedule()
-```
-
-# 源码解析

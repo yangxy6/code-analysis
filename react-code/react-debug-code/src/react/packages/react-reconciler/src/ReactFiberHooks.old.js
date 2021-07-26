@@ -693,7 +693,7 @@ function mountReducer<S, I, A>(
 ): [S, Dispatch<A>] {
   const hook = mountWorkInProgressHook();
   let initialState;
-  if (init !== undefined) {
+  if (init !== undefined) { //惰性初始化
     initialState = init(initialArg);
   } else {
     initialState = ((initialArg: any): S);
